@@ -279,7 +279,14 @@ function renderMonth(now) {
   let totMese = 0, nTurni = 0;
   const todayKey = keyOf(now);
   const parziale = keyOf(last) > NOTO_AL;
-  box.innerHTML = weeks.filter(days => days.some(isKnown)).map(days => {
+  // Mostra solo da oggi in avanti
+  const future = weeks.map(days => days.filter(d => keyOf(d) >= todayKey)).filter(days => days.length && days.some(isKnown));
+  if (!future.length) {
+    document.getElementById("monthSum").textContent = "";
+    box.innerHTML = `<div class="empty">I turni di ${MESI[viewM]} sono tutti passati.</div>`;
+    updateNav(); return;
+  }
+  box.innerHTML = future.map(days => {
     let ore = 0;
     const rows = days.map(d => {
       const k = keyOf(d), t = TURNI[k];
@@ -287,7 +294,6 @@ function renderMonth(now) {
       const cls = ["day"];
       if (d.getDay() === 0) cls.push("sun");
       if (k === todayKey) cls.push("is-today");
-      else if (k < todayKey) cls.push("past");
       const info = t
         ? `<span class="time tnum">${t.s}–${t.e}</span>${t.p ? `<span class="place">${esc(t.p)}</span>` : ""}${t.n ? `<span class="extra">${esc(t.n)}</span>` : ""}`
         : `<span class="off">${isKnown(d) ? "Riposo" : "Non ancora inserito"}</span>`;
@@ -297,12 +303,13 @@ function renderMonth(now) {
     }).join("");
     totMese += ore;
     const a = days[0], b = days[days.length - 1];
-    return `<div class="week"><div class="weekhead tnum"><span>${a.getDate()}–${b.getDate()} ${MESI[viewM].slice(0,3)}</span><span style="text-transform:none">${ore ? fmtOre(ore) : "—"}</span></div><div class="days">${rows}</div></div>`;
+    const range = a === b ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`;
+    return `<div class="week"><div class="weekhead tnum"><span>${range} ${MESI[viewM].slice(0,3)}</span><span style="text-transform:none">${ore ? fmtOre(ore) : "—"}</span></div><div class="days">${rows}</div></div>`;
   }).join("") + (parziale
     ? `<div class="empty">Dal ${fmtData(nextKey(NOTO_AL))} i turni non sono ancora inseriti.<br>Manda la foto delle prossime settimane e lo aggiorno.</div>`
     : "");
 
-  document.getElementById("monthSum").textContent = `${nTurni} turni · ${fmtOre(totMese)}`;
+  document.getElementById("monthSum").textContent = `${nTurni} ${nTurni === 1 ? "turno" : "turni"} da oggi · ${fmtOre(totMese)}`;
   updateNav();
 }
 
@@ -315,7 +322,7 @@ function updateNav() {
   const cur = `${viewY}-${pad(viewM+1)}`;
   const lo = list[0], hi = list[list.length - 1];
   const oggi = keyOf(new Date()).slice(0, 7);
-  document.getElementById("prev").disabled = cur <= (lo < oggi ? lo : oggi);
+  document.getElementById("prev").disabled = cur <= oggi;
   document.getElementById("next").disabled = cur >= (hi > oggi ? hi : oggi);
 }
 function shift(delta) {

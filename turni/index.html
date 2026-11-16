@@ -1,0 +1,339 @@
+<title>I miei turni</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: una colonna stretta da telefono — scheda "oggi" in alto, poi il mese diviso per settimane. */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --ink: #131c33;
+  --muted: #5d6680;
+  --line: #dde2ec;
+  --accent: #2443b0;        /* il blu delle domeniche sul calendario */
+  --accent-soft: #e6ebfa;
+  --live: #0f8a5f;
+  --live-soft: #ddf3ea;
+  --note: #a3540b;
+  --note-soft: #fbeedd;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1220; --surface: #171d30; --ink: #e8ecf6; --muted: #98a1ba; --line: #283049;
+    --accent: #8ea6ff; --accent-soft: #1f2a52; --live: #4fd1a0; --live-soft: #123628;
+    --note: #f2b066; --note-soft: #3a2812; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1220; --surface: #171d30; --ink: #e8ecf6; --muted: #98a1ba; --line: #283049;
+  --accent: #8ea6ff; --accent-soft: #1f2a52; --live: #4fd1a0; --live-soft: #123628;
+  --note: #f2b066; --note-soft: #3a2812; color-scheme: dark;
+}
+
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+}
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  display: grid; gap: 22px;
+}
+.tnum { font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+header.top h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; }
+header.top .clock { color: var(--muted); font-size: .9rem; }
+
+/* Oggi */
+.today {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px; display: grid; gap: 14px;
+}
+.eyebrow { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.today .date { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin-top: 2px; }
+.today .hours { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 11vw, 3.4rem); line-height: 1; letter-spacing: -0.02em; }
+.today .hours.rest { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .85rem; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.chip.live { background: var(--live-soft); color: var(--live); }
+.chip.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.note { background: var(--note-soft); color: var(--note); }
+.chip.plain { background: transparent; color: var(--muted); padding-inline: 0; font-weight: 500; }
+
+.next { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .95rem; }
+.next b { font-weight: 600; }
+
+/* Mese */
+.monthbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.monthbar h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; margin: 0; text-transform: capitalize; }
+.monthbar .sum { color: var(--muted); font-size: .85rem; }
+.navbtn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); font-size: 1.1rem; cursor: pointer;
+  display: grid; place-items: center;
+}
+.navbtn:disabled { opacity: .35; cursor: default; }
+.navbtn:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.week { display: grid; gap: 2px; }
+.weekhead { display: flex; justify-content: space-between; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 4px 6px; }
+.days { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.day {
+  display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center;
+  padding: 11px 14px; border-top: 1px solid var(--line);
+}
+.day:first-child { border-top: 0; }
+.day .num { display: grid; justify-items: center; line-height: 1.05; }
+.day .num .d { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; }
+.day .num .w { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.day.sun .num .d, .day.sun .num .w { color: var(--accent); }
+.day .info { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.day .time { font-weight: 600; font-size: 1.05rem; }
+.day .place { color: var(--muted); font-size: .9rem; }
+.day .off { color: var(--muted); font-size: .95rem; }
+.day .extra { flex-basis: 100%; font-size: .85rem; color: var(--note); font-weight: 600; }
+.day.past { opacity: .5; }
+.day.is-today { background: var(--accent-soft); }
+.day.is-today .num .d { color: var(--accent); }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 22px; color: var(--muted); text-align: center; }
+
+footer { color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>I miei turni</h1>
+    <span class="clock tnum" id="clock"></span>
+  </header>
+
+  <section class="today" id="today" aria-live="polite"></section>
+
+  <section style="display:grid; gap:16px">
+    <div class="monthbar">
+      <button class="navbtn" id="prev" aria-label="Mese precedente">‹</button>
+      <div style="text-align:center">
+        <h2 id="monthTitle"></h2>
+        <div class="sum tnum" id="monthSum"></div>
+      </div>
+      <button class="navbtn" id="next" aria-label="Mese successivo">›</button>
+    </div>
+    <div id="month" style="display:grid; gap:16px"></div>
+  </section>
+
+  <footer>
+    <span id="updated"></span>
+    <span>Per aggiornare, manda a Claude la foto nuova del calendario.</span>
+  </footer>
+</div>
+
+<script>
+/* ============ DATI — aggiornati dalle foto del calendario ============ */
+const AGGIORNATO = "16 novembre 2026";
+const TURNI = {
+  // Novembre 2026
+  "2026-11-02": { s: "08:30", e: "14:30", p: "Accettazione 6" },
+  "2026-11-03": { s: "08:30", e: "14:30", p: "Accettazione 6" },
+  "2026-11-04": { s: "08:30", e: "14:30", p: "Accettazione 6" },
+  "2026-11-05": { s: "08:30", e: "14:30", p: "Accettazione 6", n: "Intervento ore 17:30" },
+  "2026-11-06": { s: "08:30", e: "14:30", p: "Accettazione 6" },
+  "2026-11-09": { s: "13:30", e: "19:30", p: "Accettazione 3" },
+  "2026-11-10": { s: "13:30", e: "19:30", p: "Accettazione 3" },
+  "2026-11-11": { s: "13:30", e: "19:30", p: "Accettazione 3" },
+  "2026-11-12": { s: "13:30", e: "19:30", p: "Accettazione 3" },
+  "2026-11-13": { s: "13:30", e: "19:30", p: "Accettazione 3" },
+  "2026-11-16": { s: "14:00", e: "19:00", p: "Infopoint" },
+  "2026-11-17": { s: "14:00", e: "19:00", p: "Infopoint" },
+  "2026-11-18": { s: "14:00", e: "19:00", p: "Infopoint" },
+  "2026-11-19": { s: "14:00", e: "19:00", p: "Infopoint" },
+  "2026-11-20": { s: "14:00", e: "19:00", p: "Infopoint" },
+  "2026-11-21": { s: "08:00", e: "13:00", p: "Infopoint" },
+  "2026-11-23": { s: "07:00", e: "13:00", p: "Totem" },
+  "2026-11-24": { s: "07:00", e: "13:00", p: "Totem" },
+  "2026-11-25": { s: "07:00", e: "13:00", p: "Totem" },
+  "2026-11-26": { s: "07:00", e: "13:00", p: "Totem" },
+  "2026-11-27": { s: "07:00", e: "13:00", p: "Totem" },
+  "2026-11-30": { s: "08:00", e: "14:00", p: "Accettazione" },
+};
+/* Mesi di cui ho la foto (anche se un giorno è vuoto, vuol dire riposo) */
+const MESI_NOTI = ["2026-11"];
+/* ================================================================== */
+
+const GIORNI = ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
+const GIORNI_BREVI = ["dom","lun","mar","mer","gio","ven","sab"];
+const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+
+const pad = n => String(n).padStart(2, "0");
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const toMin = hm => { const [h, m] = hm.split(":").map(Number); return h*60 + m; };
+const durata = t => (toMin(t.e) - toMin(t.s)) / 60;
+const fmtOre = h => (Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")) + " h";
+const fmtDelta = min => {
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h === 0) return `${m} min`;
+  return m ? `${h} h ${m} min` : `${h} h`;
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+function isKnown(d) { return MESI_NOTI.includes(`${d.getFullYear()}-${pad(d.getMonth()+1)}`); }
+
+function prossimoTurno(dopo) {
+  const keys = Object.keys(TURNI).sort();
+  return keys.find(k => k > keyOf(dopo));
+}
+
+function renderToday(now) {
+  const k = keyOf(now);
+  const t = TURNI[k];
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const dataLabel = `${GIORNI[now.getDay()]} ${now.getDate()} ${MESI[now.getMonth()]}`;
+  let html = `<div><div class="eyebrow">Oggi</div><div class="date">${dataLabel}</div></div>`;
+  let mostraProssimo = true;
+
+  if (t) {
+    html += `<div class="hours tnum">${t.s}–${t.e}</div>`;
+    const chips = [];
+    if (t.p) chips.push(`<span class="chip">${esc(t.p)}</span>`);
+    if (nowMin < toMin(t.s)) {
+      chips.push(`<span class="chip plain">Inizi tra ${fmtDelta(toMin(t.s) - nowMin)}</span>`);
+      mostraProssimo = false;
+    } else if (nowMin < toMin(t.e)) {
+      chips.push(`<span class="chip live">In turno · finisci tra ${fmtDelta(toMin(t.e) - nowMin)}</span>`);
+      mostraProssimo = false;
+    } else {
+      chips.push(`<span class="chip plain">Turno finito</span>`);
+    }
+    if (t.n) chips.push(`<span class="chip note">${esc(t.n)}</span>`);
+    html += `<div class="chips">${chips.join("")}</div>`;
+  } else if (isKnown(now)) {
+    html += `<div class="hours rest">Riposo</div>`;
+  } else {
+    html += `<div class="hours rest">—</div><div class="chips"><span class="chip plain">Non ho ancora la foto di questo mese</span></div>`;
+  }
+
+  // Domani + prossimo turno
+  const domani = new Date(now); domani.setDate(now.getDate() + 1);
+  const td = TURNI[keyOf(domani)];
+  let next = "";
+  if (td) {
+    next = `<span>Domani <b class="tnum">${td.s}–${td.e}</b></span><span>${esc(td.p || "")}</span>`;
+  } else if (mostraProssimo) {
+    const pk = prossimoTurno(now);
+    if (pk) {
+      const [y, m, d] = pk.split("-").map(Number);
+      const pd = new Date(y, m-1, d);
+      const pt = TURNI[pk];
+      next = `<span>Prossimo: ${GIORNI[pd.getDay()]} ${d} <b class="tnum">${pt.s}–${pt.e}</b></span><span>${esc(pt.p || "")}</span>`;
+    }
+  } else if (isKnown(domani)) {
+    next = `<span>Domani <b>riposo</b></span>`;
+  }
+  if (next) html += `<div class="next">${next}</div>`;
+  document.getElementById("today").innerHTML = html;
+}
+
+let viewY, viewM;
+
+function renderMonth(now) {
+  const first = new Date(viewY, viewM, 1);
+  const last = new Date(viewY, viewM + 1, 0);
+  document.getElementById("monthTitle").textContent = `${MESI[viewM]} ${viewY}`;
+  const box = document.getElementById("month");
+
+  if (!isKnown(first)) {
+    document.getElementById("monthSum").textContent = "";
+    box.innerHTML = `<div class="empty">Nessun turno inserito per ${MESI[viewM]}.<br>Manda la foto del calendario e lo aggiorno.</div>`;
+    updateNav(); return;
+  }
+
+  // Raggruppa per settimana (lun–dom)
+  const weeks = [];
+  let cur = null;
+  for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+    if (!cur || d.getDay() === 1) { cur = []; weeks.push(cur); }
+    cur.push(new Date(d));
+  }
+
+  let totMese = 0, nTurni = 0;
+  const todayKey = keyOf(now);
+  box.innerHTML = weeks.map(days => {
+    let ore = 0;
+    const rows = days.map(d => {
+      const k = keyOf(d), t = TURNI[k];
+      if (t) { ore += durata(t); nTurni++; }
+      const cls = ["day"];
+      if (d.getDay() === 0) cls.push("sun");
+      if (k === todayKey) cls.push("is-today");
+      else if (k < todayKey) cls.push("past");
+      const info = t
+        ? `<span class="time tnum">${t.s}–${t.e}</span>${t.p ? `<span class="place">${esc(t.p)}</span>` : ""}${t.n ? `<span class="extra">${esc(t.n)}</span>` : ""}`
+        : `<span class="off">Riposo</span>`;
+      return `<div class="${cls.join(" ")}"${k === todayKey ? ' id="oggi"' : ""}>
+        <div class="num"><span class="d tnum">${d.getDate()}</span><span class="w">${GIORNI_BREVI[d.getDay()]}</span></div>
+        <div class="info">${info}</div></div>`;
+    }).join("");
+    totMese += ore;
+    const a = days[0], b = days[days.length - 1];
+    return `<div class="week"><div class="weekhead tnum"><span>${a.getDate()}–${b.getDate()} ${MESI[viewM].slice(0,3)}</span><span style="text-transform:none">${ore ? fmtOre(ore) : "—"}</span></div><div class="days">${rows}</div></div>`;
+  }).join("");
+
+  document.getElementById("monthSum").textContent = `${nTurni} turni · ${fmtOre(totMese)}`;
+  updateNav();
+}
+
+function monthsAvailable() {
+  return MESI_NOTI.slice().sort();
+}
+function updateNav() {
+  const list = monthsAvailable();
+  const cur = `${viewY}-${pad(viewM+1)}`;
+  const lo = list[0], hi = list[list.length - 1];
+  const oggi = keyOf(new Date()).slice(0, 7);
+  document.getElementById("prev").disabled = cur <= (lo < oggi ? lo : oggi);
+  document.getElementById("next").disabled = cur >= (hi > oggi ? hi : oggi);
+}
+function shift(delta) {
+  const d = new Date(viewY, viewM + delta, 1);
+  viewY = d.getFullYear(); viewM = d.getMonth();
+  renderMonth(new Date());
+}
+document.getElementById("prev").addEventListener("click", () => shift(-1));
+document.getElementById("next").addEventListener("click", () => shift(1));
+
+function tick() {
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    `${GIORNI_BREVI[now.getDay()]} ${now.getDate()} ${MESI[now.getMonth()].slice(0,3)} · ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  renderToday(now);
+}
+
+(function start() {
+  const now = new Date();
+  viewY = now.getFullYear(); viewM = now.getMonth();
+  // Se il mese corrente non è noto, mostra l'ultimo mese disponibile
+  if (!isKnown(now)) {
+    const list = monthsAvailable();
+    const [y, m] = list[list.length - 1].split("-").map(Number);
+    viewY = y; viewM = m - 1;
+  }
+  document.getElementById("updated").textContent = `Ultimo aggiornamento: ${AGGIORNATO}`;
+  tick();
+  renderMonth(now);
+  let lastDay = keyOf(now);
+  setInterval(() => {
+    tick();
+    const k = keyOf(new Date());
+    if (k !== lastDay) { lastDay = k; renderMonth(new Date()); }
+  }, 30000);
+})();
+</script>

@@ -139,7 +139,7 @@ footer { color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
 
 <script>
 /* ============ DATI — aggiornati dalle foto del calendario ============ */
-const AGGIORNATO = "16 novembre 2026";
+const AGGIORNATO = "16 novembre 2026 (turni fino al 13 dicembre)";
 const TURNI = {
   // Novembre 2026
   "2026-11-02": { s: "08:30", e: "14:30", p: "Accettazione 6" },
@@ -163,10 +163,21 @@ const TURNI = {
   "2026-11-25": { s: "07:00", e: "13:00", p: "Totem" },
   "2026-11-26": { s: "07:00", e: "13:00", p: "Totem" },
   "2026-11-27": { s: "07:00", e: "13:00", p: "Totem" },
-  "2026-11-30": { s: "08:00", e: "14:00", p: "Accettazione" },
+  "2026-11-30": { s: "08:00", e: "14:00", p: "Accettazione 6" },
+  // Dicembre 2026 (settimane 4 e 5 del foglio TURNI_NOVEMBRE)
+  "2026-12-01": { s: "08:00", e: "14:00", p: "Accettazione 6" },
+  "2026-12-02": { s: "08:00", e: "14:00", p: "Accettazione 6" },
+  "2026-12-03": { s: "08:00", e: "14:00", p: "Accettazione 6" },
+  "2026-12-04": { s: "08:00", e: "14:00", p: "Accettazione 6" },
+  "2026-12-07": { s: "13:30", e: "19:30", p: "Accettazione 2" },
+  "2026-12-08": { s: "13:30", e: "19:30", p: "Accettazione 2" },
+  "2026-12-09": { s: "13:30", e: "19:30", p: "Accettazione 2" },
+  "2026-12-10": { s: "13:30", e: "19:30", p: "Accettazione 2" },
+  "2026-12-11": { s: "13:30", e: "19:30", p: "Accettazione 2" },
 };
-/* Mesi di cui ho la foto (anche se un giorno è vuoto, vuol dire riposo) */
-const MESI_NOTI = ["2026-11"];
+/* Periodo di cui ho gli orari: dentro questo periodo un giorno vuoto è riposo */
+const NOTO_DAL = "2026-11-01";
+const NOTO_AL = "2026-12-13";
 /* ================================================================== */
 
 const GIORNI = ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
@@ -185,7 +196,8 @@ const fmtDelta = min => {
 };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 
-function isKnown(d) { return MESI_NOTI.includes(`${d.getFullYear()}-${pad(d.getMonth()+1)}`); }
+function isKnown(d) { const k = keyOf(d); return k >= NOTO_DAL && k <= NOTO_AL; }
+function fmtData(k) { const [y, m, d] = k.split("-").map(Number); return `${d} ${MESI[m-1]}`; }
 
 function prossimoTurno(dopo) {
   const keys = Object.keys(TURNI).sort();
@@ -218,7 +230,7 @@ function renderToday(now) {
   } else if (isKnown(now)) {
     html += `<div class="hours rest">Riposo</div>`;
   } else {
-    html += `<div class="hours rest">—</div><div class="chips"><span class="chip plain">Non ho ancora la foto di questo mese</span></div>`;
+    html += `<div class="hours rest">—</div><div class="chips"><span class="chip plain">Turno non ancora inserito</span></div>`;
   }
 
   // Domani + prossimo turno
@@ -250,7 +262,7 @@ function renderMonth(now) {
   document.getElementById("monthTitle").textContent = `${MESI[viewM]} ${viewY}`;
   const box = document.getElementById("month");
 
-  if (!isKnown(first)) {
+  if (keyOf(last) < NOTO_DAL || keyOf(first) > NOTO_AL) {
     document.getElementById("monthSum").textContent = "";
     box.innerHTML = `<div class="empty">Nessun turno inserito per ${MESI[viewM]}.<br>Manda la foto del calendario e lo aggiorno.</div>`;
     updateNav(); return;
@@ -266,7 +278,8 @@ function renderMonth(now) {
 
   let totMese = 0, nTurni = 0;
   const todayKey = keyOf(now);
-  box.innerHTML = weeks.map(days => {
+  const parziale = keyOf(last) > NOTO_AL;
+  box.innerHTML = weeks.filter(days => days.some(isKnown)).map(days => {
     let ore = 0;
     const rows = days.map(d => {
       const k = keyOf(d), t = TURNI[k];
@@ -277,7 +290,7 @@ function renderMonth(now) {
       else if (k < todayKey) cls.push("past");
       const info = t
         ? `<span class="time tnum">${t.s}–${t.e}</span>${t.p ? `<span class="place">${esc(t.p)}</span>` : ""}${t.n ? `<span class="extra">${esc(t.n)}</span>` : ""}`
-        : `<span class="off">Riposo</span>`;
+        : `<span class="off">${isKnown(d) ? "Riposo" : "Non ancora inserito"}</span>`;
       return `<div class="${cls.join(" ")}"${k === todayKey ? ' id="oggi"' : ""}>
         <div class="num"><span class="d tnum">${d.getDate()}</span><span class="w">${GIORNI_BREVI[d.getDay()]}</span></div>
         <div class="info">${info}</div></div>`;
@@ -285,14 +298,17 @@ function renderMonth(now) {
     totMese += ore;
     const a = days[0], b = days[days.length - 1];
     return `<div class="week"><div class="weekhead tnum"><span>${a.getDate()}–${b.getDate()} ${MESI[viewM].slice(0,3)}</span><span style="text-transform:none">${ore ? fmtOre(ore) : "—"}</span></div><div class="days">${rows}</div></div>`;
-  }).join("");
+  }).join("") + (parziale
+    ? `<div class="empty">Dal ${fmtData(nextKey(NOTO_AL))} i turni non sono ancora inseriti.<br>Manda la foto delle prossime settimane e lo aggiorno.</div>`
+    : "");
 
   document.getElementById("monthSum").textContent = `${nTurni} turni · ${fmtOre(totMese)}`;
   updateNav();
 }
 
+function nextKey(k) { const [y, m, d] = k.split("-").map(Number); return keyOf(new Date(y, m-1, d+1)); }
 function monthsAvailable() {
-  return MESI_NOTI.slice().sort();
+  return [NOTO_DAL.slice(0, 7), NOTO_AL.slice(0, 7)];
 }
 function updateNav() {
   const list = monthsAvailable();
